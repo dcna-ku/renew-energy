@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>재생에너지 탐험대 - 재생 에너지 코리아</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap');
+    * {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    input[type=range] {
+      accent-color: #10b981;
+    }
+    /* 터빈 회전 애니메이션 */
+    @keyframes spin-turbine {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-custom {
+      animation: spin-turbine var(--spin-duration, 2s) linear infinite;
+      transform-origin: center;
+    }
+    /* 태양 펄스 애니메이션 */
+    @keyframes pulse-sun {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.12); opacity: 1; filter: drop-shadow(0 0 16px #f59e0b); }
+    }
+    .animate-sun {
+      animation: pulse-sun 2s ease-in-out infinite;
+      transform-origin: center;
+    }
+    /* 수력 낙수 애니메이션 */
+    @keyframes water-flow {
+      0% { stroke-dashoffset: 20; }
+      100% { stroke-dashoffset: 0; }
+    }
+    .water-flow-line {
+      stroke-dasharray: 6 4;
+      animation: water-flow 0.6s linear infinite;
+    }
+    /* 조력 조석 애니메이션 */
+    @keyframes tide-wave {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+      100% { transform: translateY(0); }
+    }
+    .tide-anim {
+      animation: tide-wave 3s ease-in-out infinite;
+    }
+
+    /* 지도 권역 마커 안정화 스타일 (떨림 방지 및 외곽선 하이라이트) */
+    .region-marker {
+      cursor: pointer;
+    }
+    .region-marker text {
+      pointer-events: none;
+    }
+    .region-marker .marker-hitbox {
+      fill: transparent;
+      pointer-events: all;
+    }
+    .region-marker .marker-dot {
+      transition: stroke 0.18s ease, stroke-width 0.18s ease, filter 0.18s ease;
+      stroke: #ffffff;
+      stroke-width: 2.5px;
+      pointer-events: none;
+    }
+    /* 호버 시 크기 변경 없이 선명한 골드/옐로우 외곽선만 하이라이트 */
+    .region-marker:hover .marker-dot {
+      stroke: #fbbf24;
+      stroke-width: 4.5px;
+      filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.85));
+    }
+    /* 현재 선택된 권역 마커 외곽선 고정 강조 */
+    .region-marker.is-active .marker-dot {
+      stroke: #059669;
+      stroke-width: 5px;
+      filter: drop-shadow(0 0 7px rgba(5, 150, 105, 0.9));
+    }
+
+    /* 스크롤바 커스텀 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-emerald-200">
+
+  <!-- ==================== 1. 로그인 화면 ==================== -->
+  <div id="login-screen" class="fixed inset-0 z-50 bg-gradient-to-br from-emerald-600 via-teal-700 to-cyan-900 flex items-center justify-center p-4">
+    <div class="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-6 sm:p-10 max-w-lg w-full border border-white/40 text-center relative overflow-hidden">
+      <!-- 배경 장식 아이콘 -->
+      <div class="absolute -top-12 -left-12 w-36 h-36 bg-emerald-200/50 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="absolute -bottom-12 -right-12 w-36 h-36 bg-cyan-200/50 rounded-full blur-2xl pointer-events-none"></div>
+
+      <!-- 상단 엠블럼 -->
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shadow-lg shadow-emerald-500/30 mb-5">
+        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      </div>
+
+      <div class="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full mb-2">
+        중학교 2학년 기술·가정 에너지 단원 탐구활동
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight mb-2">
+        재생에너지 탐험대
+      </h1>
+      <p class="text-sm font-semibold text-teal-600 mb-6">
+        대한민국 친환경 에너지 자립 100% 프로젝트
+      </p>
+
+      <!-- 좌우 팝업 미리보기 카드 -->
+      <div class="grid grid-cols-3 gap-2 mb-6 text-xs text-slate-600">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex flex-col items-center">
+          <span class="text-xl mb-1">☀️</span>
+          <span class="font-bold text-slate-700">태양광·열</span>
+          <span class="text-[10px] text-slate-400">광전·집열</span>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex flex-col items-center">
+          <span class="text-xl mb-1">💨</span>
+          <span class="font-bold text-slate-700">풍력</span>
+          <span class="text-[10px] text-slate-400">운동에너지</span>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex flex-col items-center">
+          <span class="text-xl mb-1">🌊</span>
+          <span class="font-bold text-slate-700">조력·수력</span>
+          <span class="text-[10px] text-slate-400">위치·조석차</span>
+        </div>
+      </div>
+
+      <!-- 입력 폼 -->
+      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4 text-left">
+        <div>
+          <label for="student-id" class="block text-xs font-bold text-slate-700 mb-1">
+            학번 (숫자 5자리: 예: 20315)
+          </label>
+          <input 
+            type="text" 
+            id="student-id" 
+            maxlength="5" 
+            placeholder="예: 20315"
+            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-base tracking-wider font-semibold transition bg-slate-50/50"
+          >
+        </div>
+
+        <div>
+          <label for="student-name" class="block text-xs font-bold text-slate-700 mb-1">
+            이름 (한글 2~10자: 예: 홍길동)
+          </label>
+          <input 
+            type="text" 
+            id="student-name" 
+            maxlength="10" 
+            placeholder="예: 홍길동"
+            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-base font-semibold transition bg-slate-50/50"
+          >
+        </div>
+
+        <!-- 경고 메시지 영역 -->
+        <div id="login-error" class="hidden text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl border border-red-200 flex items-center gap-2">
+          <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          <span id="login-error-text">학번(숫자 5자리)과 이름(한글)을 정확히 입력해 주세요.</span>
+        </div>
+
+        <button 
+          type="submit" 
+          class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.98] text-white font-bold text-base rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <span>탐험 시작하기</span>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== 2. 상단 고정 네비게이션 헤더 ==================== -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-2.5 shadow-sm">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- 로고 및 앱 타이틀 -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 font-black text-lg">
+          🌱
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-slate-800 text-base sm:text-lg leading-tight">재생에너지 탐험대</span>
+            <span class="text-[11px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">KOREA</span>
+          </div>
+          <div id="user-badge" class="text-xs text-slate-500 font-medium">
+            탐험대원 로그인 대기중
+          </div>
+        </div>
+      </div>
+
+      <!-- 실시간 자립률 현황 및 액션 -->
+      <div class="flex items-center gap-3 sm:gap-6 flex-wrap">
+        <!-- 국가 에너지 자립률 프로그레스 -->
+        <div class="flex items-center gap-3 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+          <div class="text-right">
+            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">국내 친환경 자립률</div>
+            <div class="text-xs font-black text-slate-700">
+              <span id="independence-rate" class="text-emerald-600 text-sm font-extrabold">0</span>% / 100%
+            </div>
+          </div>
+          <div class="w-24 sm:w-32 bg-slate-200 rounded-full h-3 overflow-hidden">
+            <div id="independence-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- 총 누적 발전량 -->
+        <div class="hidden md:flex flex-col text-right">
+          <span class="text-[10px] text-slate-400 font-bold">총 누적 발전량</span>
+          <span class="text-xs font-extrabold text-slate-800"><span id="total-generation" class="text-teal-600">0</span> GWh</span>
+        </div>
+
+        <!-- 전체 초기화 버튼 -->
+        <button 
+          onclick="resetAllData()" 
+          class="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 active:scale-95 border border-red-200 rounded-lg transition flex items-center gap-1 cursor-pointer"
+          title="모든 발전소와 입력값을 초기화합니다"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>전체 초기화</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 탭 네비게이션 -->
+    <div class="max-w-7xl mx-auto flex gap-2 mt-2 pt-1 border-t border-slate-100 text-xs sm:text-sm font-bold">
+      <button 
+        id="tab-btn-sim" 
+        onclick="switchTab('sim')" 
+        class="tab-btn active px-3.5 py-1.5 rounded-lg bg-emerald-500 text-white transition shadow-sm"
+      >
+        🗺️ 1. 전국 발전소 시뮬레이터
+      </button>
+      <button 
+        id="tab-btn-stats" 
+        onclick="switchTab('stats')" 
+        class="tab-btn px-3.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition"
+      >
+        📊 2. 국내 보급 통계 & 9대 원리
+      </button>
+      <button 
+        id="tab-btn-report" 
+        onclick="switchTab('report')" 
+        class="tab-btn px-3.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition"
+      >
+        🏆 3. 탐험 완료 리포트
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== 메인 콘텐츠 영역 ==================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5">
+
+    <!-- ---------------------------------------------------- -->
+    <!-- TAB 1: 전국 발전소 건설 시뮬레이터                  -->
+    <!-- ---------------------------------------------------- -->
+    <div id="tab-sim" class="space-y-4">
+      
+      <!-- 상단 가이드 배너 -->
+      <div class="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-200/80 rounded-2xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🧭</span>
+          <div>
+            <span class="font-extrabold text-slate-800">탐험 미션:</span>
+            <span class="text-slate-600">지도에서 지역을 고르고 최적의 신재생 에너지를 건설하여 대한민국 에너지 자립률 100%를 달성하세요!</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="bg-emerald-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-md">설치 현황: <span id="installed-count">0</span> / 6 권역</span>
+        </div>
+      </div>
+
+      <!-- 메인 3컬럼 반응형 레이아웃 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        
+        <!-- 좌측: 대한민국 지도 및 권역 선택 (5 cols) -->
+        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <h2 class="font-extrabold text-slate-800 text-base flex items-center gap-1.5">
+                <span>📍 대한민국 권역 선택</span>
+              </h2>
+              <p class="text-xs text-slate-500">지도 위 마커 또는 버튼을 눌러 입지를 탐색하세요.</p>
+            </div>
+            <span id="selected-region-tag" class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
+              미선택
+            </span>
+          </div>
+
+          <!-- 인터랙티브 대한민국 지도 SVG -->
+          <div class="relative w-full aspect-[4/5] bg-sky-50/60 rounded-xl border border-sky-100 overflow-hidden flex items-center justify-center p-2">
+            <!-- 한반도 간략화 SVG 윤곽 -->
+            <svg viewBox="0 0 360 460" class="w-full h-full filter drop-shadow">
+              <!-- 바다 배경 텍스처 -->
+              <rect width="360" height="460" fill="transparent" />
+              <!-- 육지 패스 (대한민국 형태 단순화) -->
+              <path d="M 120 20 
+                       C 140 30, 180 35, 210 50 
+                       C 240 70, 260 110, 250 140 
+                       C 245 155, 265 180, 275 220 
+                       C 285 260, 275 300, 250 330 
+                       C 230 355, 200 360, 170 370 
+                       C 140 380, 110 385, 90 355 
+                       C 75 330, 80 300, 85 270 
+                       C 90 240, 70 200, 80 160 
+                       C 85 130, 95 90, 105 50 Z" 
+                    fill="#e2e8f0" stroke="#cbd5e1" stroke-width="2" />
+              <!-- 제주도 -->
+              <ellipse cx="105" cy="425" rx="36" ry="18" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="2" />
+              <!-- 울릉도 / 독도 -->
+              <circle cx="320" cy="180" r="7" fill="#cbd5e1" />
+              <circle cx="340" cy="190" r="4" fill="#cbd5e1" />
+
+              <!-- 안정화된 지역 인터랙티브 마커들 (떨림 제거 및 넉넉한 터치/클릭 히트박스 탑재) -->
+              <!-- 1. 서울 -->
+              <g id="map-group-seoul" class="region-marker" onclick="selectRegion('seoul')">
+                <circle cx="135" cy="115" r="26" class="marker-hitbox" />
+                <circle id="map-dot-seoul" cx="135" cy="115" r="14" fill="#3b82f6" class="marker-dot" opacity="0.95" />
+                <circle cx="135" cy="115" r="5" fill="#ffffff" pointer-events="none" />
+                <text x="135" y="93" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">서울</text>
+                <text id="map-badge-seoul" x="135" y="142" text-anchor="middle" font-size="10" font-weight="bold" fill="#64748b">미설치</text>
+              </g>
+
+              <!-- 2. 안산 시화호 -->
+              <g id="map-group-ansan" class="region-marker" onclick="selectRegion('ansan')">
+                <circle cx="105" cy="140" r="26" class="marker-hitbox" />
+                <circle id="map-dot-ansan" cx="105" cy="140" r="14" fill="#0ea5e9" class="marker-dot" opacity="0.95" />
+                <circle cx="105" cy="140" r="5" fill="#ffffff" pointer-events="none" />
+                <text x="80" y="143" text-anchor="end" font-size="11" font-weight="bold" fill="#1e293b">안산(시화호)</text>
+                <text id="map-badge-ansan" x="105" y="166" text-anchor="middle" font-size="10" font-weight="bold" fill="#64748b">미설치</text>
+              </g>
+
+              <!-- 3. 대관령·영덕 -->
+              <g id="map-group-daegwan" class="region-marker" onclick="selectRegion('daegwan')">
+                <circle cx="225" cy="130" r="26" class="marker-hitbox" />
+                <circle id="map-dot-daegwan" cx="225" cy="130" r="14" fill="#10b981" class="marker-dot" opacity="0.95" />
+                <circle cx="225" cy="130" r="5" fill="#ffffff" pointer-events="none" />
+                <text x="245" y="133" text-anchor="start" font-size="11" font-weight="bold" fill="#1e293b">대관령·영덕</text>
+                <text id="map-badge-daegwan" x="225" y="156" text-anchor="middle" font-size="10" font-weight="bold" fill="#64748b">미설치</text>
+              </g>
+
+              <!-- 4. 충주댐 -->
+              <g id="map-group-chungju" class="region-marker" onclick="selectRegion('chungju')">
+                <circle cx="175" cy="170" r="26" class="marker-hitbox" />
+                <circle id="map-dot-chungju" cx="175" cy="170" r="14" fill="#6366f1" class="marker-dot" opacity="0.95" />
+                <circle cx="175" cy="170" r="5" fill="#ffffff" pointer-events="none" />
+                <text x="175" y="196" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">충주(충주댐)</text>
+                <text id="map-badge-chungju" x="175" y="210" text-anchor="middle" font-size="10" font-weight="bold" fill="#64748b">미설치</text>
+              </g>
+
+              <!-- 5. 해남 -->
+              <g id="map-group-haenam" class="region-marker" onclick="selectRegion('haenam')">
+                <circle cx="110" cy="350" r="26" class="marker-hitbox" />
+                <circle id="map-dot-haenam" cx="110" cy="350" r="14" fill="#f59e0b" class="marker-dot" opacity="0.95" />
+                <circle cx="110" cy="350" r="5" fill="#ffffff" pointer-events="none" />
+                <text x="110" y="377" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">해남</text>
+                <text id="map-badge-haenam" x="110" y="391" text-anchor="middle" font-size="10" font-weight="bold" fill="#64748b">미설치</text>
+              </g>
+
+              <!-- 6. 제주도 -->
+              <g id="map-group-jeju" class="region-marker" onclick="selectRegion('jeju')">
+                <circle cx="105" cy="425" r="26" class="marker-hitbox" />
+                <circle id="map-dot-jeju" cx="105" cy="425" r="14" fill="#14b8a6" class="marker-dot" opacity="0.95" />
+                <circle cx="105" cy="425" r="5" fill="#ffffff" pointer-events="none" />
+                <text x="150" y="430" text-anchor="start" font-size="11" font-weight="bold" fill="#1e293b">제주</text>
+                <text id="map-badge-jeju" x="105" y="449" text-anchor="middle" font-size="10" font-weight="bold" fill="#64748b">미설치</text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- 지역 빠른 선택 버튼 목록 (모바일 및 태블릿용) -->
+          <div class="grid grid-cols-3 gap-1.5 mt-3">
+            <button onclick="selectRegion('haenam')" id="btn-reg-haenam" class="region-btn p-2 text-xs font-bold rounded-lg border border-slate-200 hover:border-emerald-500 bg-slate-50 transition">해남 ☀️</button>
+            <button onclick="selectRegion('daegwan')" id="btn-reg-daegwan" class="region-btn p-2 text-xs font-bold rounded-lg border border-slate-200 hover:border-emerald-500 bg-slate-50 transition">대관령·영덕 💨</button>
+            <button onclick="selectRegion('jeju')" id="btn-reg-jeju" class="region-btn p-2 text-xs font-bold rounded-lg border border-slate-200 hover:border-emerald-500 bg-slate-50 transition">제주 🌴</button>
+            <button onclick="selectRegion('ansan')" id="btn-reg-ansan" class="region-btn p-2 text-xs font-bold rounded-lg border border-slate-200 hover:border-emerald-500 bg-slate-50 transition">안산(시화호) 🌊</button>
+            <button onclick="selectRegion('chungju')" id="btn-reg-chungju" class="region-btn p-2 text-xs font-bold rounded-lg border border-slate-200 hover:border-emerald-500 bg-slate-50 transition">충주(댐) 💧</button>
+            <button onclick="selectRegion('seoul')" id="btn-reg-seoul" class="region-btn p-2 text-xs font-bold rounded-lg border border-slate-200 hover:border-emerald-500 bg-slate-50 transition">서울 🏙️</button>
+          </div>
+
+          <!-- 선택된 지역 환경 특성 카드 -->
+          <div class="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+            <div class="font-extrabold text-slate-700 mb-1 flex items-center justify-between">
+              <span>지역 환경 분석 데이터</span>
+              <span id="region-feature-tag" class="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded">지역을 선택하세요</span>
+            </div>
+            <p id="region-desc" class="text-slate-500 leading-relaxed">
+              위 지도나 버튼에서 탐구할 권역을 선택하면 해당 지역의 실제 지리적·자연적 환경 데이터가 분석됩니다.
+            </p>
+          </div>
+        </div>
+
+        <!-- 중앙 & 우측: 발전소 선택 및 슬라이더 시뮬레이션 대시보드 (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col gap-4">
+          
+          <!-- 1단계: 발전 방식 선택 -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
+                <span>⚡ 1단계: 건설할 발전 방식 선택</span>
+              </h3>
+              <span class="text-xs text-slate-400">지역 특성에 맞는 기술을 고르세요</span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <button onclick="selectPlantType('solar')" id="plant-btn-solar" class="plant-type-btn p-2.5 rounded-xl border border-slate-200 hover:border-amber-500 text-center transition flex flex-col items-center">
+                <span class="text-2xl mb-1">☀️</span>
+                <span class="text-xs font-bold text-slate-700">태양광</span>
+                <span class="text-[10px] text-slate-400">빛 → 전기</span>
+              </button>
+              <button onclick="selectPlantType('wind')" id="plant-btn-wind" class="plant-type-btn p-2.5 rounded-xl border border-slate-200 hover:border-teal-500 text-center transition flex flex-col items-center">
+                <span class="text-2xl mb-1">💨</span>
+                <span class="text-xs font-bold text-slate-700">풍력</span>
+                <span class="text-[10px] text-slate-400">바람 터빈</span>
+              </button>
+              <button onclick="selectPlantType('tidal')" id="plant-btn-tidal" class="plant-type-btn p-2.5 rounded-xl border border-slate-200 hover:border-sky-500 text-center transition flex flex-col items-center">
+                <span class="text-2xl mb-1">🌊</span>
+                <span class="text-xs font-bold text-slate-700">조력(해양)</span>
+                <span class="text-[10px] text-slate-400">조석 간만차</span>
+              </button>
+              <button onclick="selectPlantType('hydro')" id="plant-btn-hydro" class="plant-type-btn p-2.5 rounded-xl border border-slate-200 hover:border-indigo-500 text-center transition flex flex-col items-center">
+                <span class="text-2xl mb-1">💧</span>
+                <span class="text-xs font-bold text-slate-700">수력</span>
+                <span class="text-[10px] text-slate-400">낙하 수위차</span>
+              </button>
+              <button onclick="selectPlantType('bio')" id="plant-btn-bio" class="plant-type-btn p-2.5 rounded-xl border border-slate-200 hover:border-emerald-500 text-center transition flex flex-col items-center">
+                <span class="text-2xl mb-1">♻️</span>
+                <span class="text-xs font-bold text-slate-700">바이오·폐기물</span>
+                <span class="text-[10px] text-slate-400">유기물 자원화</span>
+              </button>
+            </div>
+
+            <!-- 입지 적합도 피드백 배너 -->
+            <div id="suitability-box" class="mt-3 p-3 rounded-xl border text-xs flex items-start gap-2.5 bg-slate-50 border-slate-200 text-slate-600 transition-all">
+              <span id="suitability-icon" class="text-lg flex-shrink-0">💡</span>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-0.5">
+                  <span id="suitability-badge" class="font-extrabold text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-700">대기 중</span>
+                  <span id="suitability-title" class="font-bold text-slate-800">지역과 발전소를 선택하세요</span>
+                </div>
+                <p id="suitability-detail" class="text-slate-500 text-[11px] leading-snug">
+                  선택한 지역의 자연환경과 선택한 발전 방식의 일치 여부를 과학적으로 판별합니다.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2단계: 자원량 조절 슬라이더 및 시각화 애니메이션 -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
+                <span>🎛️ 2단계: 자연 자원량 조절 & 시각화 시뮬레이션</span>
+              </h3>
+              <span class="text-[11px] text-slate-500">슬라이더를 밀어 환경 조건을 바꿔보세요</span>
+            </div>
+
+            <!-- 슬라이더 컨트롤 영역 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+              
+              <!-- 1. 일사 시간 -->
+              <div id="slider-group-solar" class="space-y-1">
+                <div class="flex justify-between font-bold text-slate-700">
+                  <span>일일 일사 시간 (햇빛)</span>
+                  <span class="text-amber-600 font-extrabold"><span id="val-solar">5.0</span> 시간/일</span>
+                </div>
+                <input type="range" id="input-solar" min="0" max="10" step="0.1" value="5.0" oninput="updateSimulation()" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer">
+                <div class="flex justify-between text-[10px] text-slate-400">
+                  <span>0h (야간)</span>
+                  <span class="text-red-500 font-semibold">임계값 0.5h</span>
+                  <span>10h (쾌청)</span>
+                </div>
+              </div>
+
+              <!-- 2. 풍속 -->
+              <div id="slider-group-wind" class="space-y-1">
+                <div class="flex justify-between font-bold text-slate-700">
+                  <span>평균 풍속 (바람)</span>
+                  <span class="text-teal-600 font-extrabold"><span id="val-wind">8.0</span> m/s</span>
+                </div>
+                <input type="range" id="input-wind" min="0" max="30" step="0.5" value="8.0" oninput="updateSimulation()" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer">
+                <div class="flex justify-between text-[10px] text-slate-400">
+                  <span class="text-amber-500 font-semibold">시동: 3m/s</span>
+                  <span class="text-teal-600 font-bold">정격: 12m/s</span>
+                  <span class="text-red-500 font-semibold">컷아웃: 25m/s</span>
+                </div>
+              </div>
+
+              <!-- 3. 조수간만의 차 -->
+              <div id="slider-group-tidal" class="space-y-1">
+                <div class="flex justify-between font-bold text-slate-700">
+                  <span>조수간만의 차 (조차)</span>
+                  <span class="text-sky-600 font-extrabold"><span id="val-tidal">6.5</span> m</span>
+                </div>
+                <input type="range" id="input-tidal" min="0" max="10" step="0.2" value="6.5" oninput="updateSimulation()" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer">
+                <div class="flex justify-between text-[10px] text-slate-400">
+                  <span>0m</span>
+                  <span class="text-red-500 font-semibold">임계값 4.0m</span>
+                  <span>10m (시화호 수준)</span>
+                </div>
+              </div>
+
+              <!-- 4. 유량 / 수량 -->
+              <div id="slider-group-hydro" class="space-y-1">
+                <div class="flex justify-between font-bold text-slate-700">
+                  <span>하천 수계 유량 지수</span>
+                  <span class="text-indigo-600 font-extrabold"><span id="val-hydro">60</span> / 100</span>
+                </div>
+                <input type="range" id="input-hydro" min="0" max="100" step="1" value="60" oninput="updateSimulation()" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer">
+                <div class="flex justify-between text-[10px] text-slate-400">
+                  <span>0 (가뭄)</span>
+                  <span>50 (평수기)</span>
+                  <span>100 (풍수기)</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- 시각화 애니메이션 디스플레이 창 -->
+            <div class="relative h-44 w-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center p-3 text-white">
+              
+              <!-- 1) 태양광 애니메이션 뷰 -->
+              <div id="anim-view-solar" class="anim-view absolute inset-0 flex flex-col items-center justify-center">
+                <div class="relative w-24 h-24 flex items-center justify-center">
+                  <div id="sun-glow" class="w-16 h-16 rounded-full bg-amber-400 shadow-2xl animate-sun flex items-center justify-center text-3xl">
+                    ☀️
+                  </div>
+                  <!-- 광선 라인 효과 -->
+                  <div class="absolute inset-0 border-2 border-dashed border-amber-300/40 rounded-full animate-spin-custom" style="--spin-duration: 10s;"></div>
+                </div>
+                <!-- 태양광 모듈 패널 -->
+                <div class="mt-2 w-48 h-12 bg-blue-950 border-2 border-cyan-400/80 rounded-md grid grid-cols-4 gap-1 p-1 shadow-lg shadow-cyan-500/20">
+                  <div class="bg-blue-800/80 rounded-sm"></div>
+                  <div class="bg-blue-800/80 rounded-sm"></div>
+                  <div class="bg-blue-800/80 rounded-sm"></div>
+                  <div class="bg-blue-800/80 rounded-sm"></div>
+                </div>
+                <span class="text-[11px] font-bold text-cyan-300 mt-1">광전효과(Photovoltaic Effect) 전력 생산 중</span>
+              </div>
+
+              <!-- 2) 풍력 터빈 애니메이션 뷰 -->
+              <div id="anim-view-wind" class="anim-view absolute inset-0 hidden flex-col items-center justify-center">
+                <div class="relative w-36 h-36 flex items-center justify-center">
+                  <!-- 회전하는 3엽 블레이드 SVG -->
+                  <svg id="wind-blades" viewBox="0 0 100 100" class="w-28 h-28 animate-spin-custom">
+                    <!-- 중앙 허브 -->
+                    <circle cx="50" cy="50" r="6" fill="#f8fafc" />
+                    <!-- 블레이드 1 -->
+                    <path d="M 50 50 C 48 30, 45 10, 50 2 C 55 10, 52 30, 50 50 Z" fill="#e2e8f0" />
+                    <!-- 블레이드 2 (120도) -->
+                    <g transform="rotate(120 50 50)">
+                      <path d="M 50 50 C 48 30, 45 10, 50 2 C 55 10, 52 30, 50 50 Z" fill="#e2e8f0" />
+                    </g>
+                    <!-- 블레이드 3 (240도) -->
+                    <g transform="rotate(240 50 50)">
+                      <path d="M 50 50 C 48 30, 45 10, 50 2 C 55 10, 52 30, 50 50 Z" fill="#e2e8f0" />
+                    </g>
+                  </svg>
+                  <!-- 타워 기둥 -->
+                  <div class="absolute bottom-1 w-2.5 h-16 bg-slate-400 rounded-t-sm -z-0"></div>
+                </div>
+                <span id="turbine-status-text" class="text-[11px] font-bold text-teal-300 mt-1">블레이드 회전 운동 → 전기에너지 변환</span>
+              </div>
+
+              <!-- 3) 조력 발전소 애니메이션 뷰 -->
+              <div id="anim-view-tidal" class="anim-view absolute inset-0 hidden flex-col items-center justify-center px-4">
+                <div class="w-full max-w-sm flex items-center justify-between gap-2">
+                  <!-- 바깥 바다 (해수면) -->
+                  <div class="flex-1 text-center">
+                    <span class="text-[10px] text-slate-400">외해 (밀물/썰물)</span>
+                    <div id="tide-sea" class="h-16 bg-sky-600 rounded-lg flex items-center justify-center tide-anim font-bold text-xs">
+                      바다
+                    </div>
+                  </div>
+                  <!-- 조력 댐 방조제 수문 & 수차 -->
+                  <div class="w-16 h-20 bg-slate-700 rounded-lg flex flex-col items-center justify-center border border-slate-600 relative">
+                    <span class="text-[9px] text-sky-300 font-bold">수문/터빈</span>
+                    <div class="w-8 h-8 rounded-full border-2 border-dashed border-yellow-400 animate-spin-custom mt-1" style="--spin-duration: 1.5s;"></div>
+                  </div>
+                  <!-- 시화호 내부 호수 -->
+                  <div class="flex-1 text-center">
+                    <span class="text-[10px] text-slate-400">내해 (호수 수위)</span>
+                    <div class="h-10 bg-teal-800 rounded-lg flex items-center justify-center font-bold text-xs mt-6">
+                      호수
+                    </div>
+                  </div>
+                </div>
+                <span class="text-[11px] font-bold text-sky-300 mt-2">조석 수위차 낙차를 이용한 수차 회전</span>
+              </div>
+
+              <!-- 4) 수력 발전소 애니메이션 뷰 -->
+              <div id="anim-view-hydro" class="anim-view absolute inset-0 hidden flex-col items-center justify-center">
+                <svg viewBox="0 0 200 100" class="w-64 h-24">
+                  <!-- 댐 본체 콘크리트 -->
+                  <polygon points="20,10 60,10 80,90 20,90" fill="#475569" />
+                  <!-- 댐 상류 저수지 -->
+                  <rect x="0" y="25" width="40" height="65" fill="#3b82f6" opacity="0.8" />
+                  <!-- 관로 수로 -->
+                  <path d="M 40 40 L 100 80" stroke="#38bdf8" stroke-width="6" class="water-flow-line" />
+                  <!-- 수차 터빈 -->
+                  <circle cx="115" cy="80" r="10" fill="#f59e0b" />
+                  <!-- 하류 하천 -->
+                  <rect x="110" y="85" width="90" height="15" fill="#0284c7" opacity="0.9" />
+                </svg>
+                <span class="text-[11px] font-bold text-indigo-300 mt-1">저수지 위치에너지 → 발전기 운동에너지</span>
+              </div>
+
+              <!-- 5) 바이오·폐기물 애니메이션 뷰 -->
+              <div id="anim-view-bio" class="anim-view absolute inset-0 hidden flex-col items-center justify-center">
+                <div class="flex items-center gap-4 text-3xl">
+                  <span>🍎🗑️</span>
+                  <span class="text-base text-emerald-400 font-bold">➔</span>
+                  <div class="w-14 h-14 rounded-2xl bg-emerald-950 border-2 border-emerald-500 flex items-center justify-center text-2xl animate-pulse">
+                    🏭
+                  </div>
+                  <span class="text-base text-emerald-400 font-bold">➔</span>
+                  <span>⚡🔥</span>
+                </div>
+                <span class="text-[11px] font-bold text-emerald-300 mt-2">유기성 폐자원 바이오가스화 & 열병합 발전</span>
+              </div>
+
+              <!-- 경계 조건 정지 오버레이 (알림 배너) -->
+              <div id="cutoff-overlay" class="hidden absolute inset-0 bg-red-950/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center z-10 transition">
+                <div class="w-10 h-10 rounded-full bg-red-600/30 text-red-400 flex items-center justify-center text-xl mb-1">
+                  ⚠️
+                </div>
+                <span id="cutoff-title" class="font-extrabold text-sm text-red-200 mb-1">발전 정지 조건 발생</span>
+                <p id="cutoff-desc" class="text-xs text-red-300 max-w-sm">경계값 제한으로 인해 발전기가 가동되지 않습니다.</p>
+              </div>
+
+            </div>
+
+            <!-- 실시간 발전량 및 탄소 감축 지표 카드 -->
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5">
+                <div class="text-[10px] text-emerald-700 font-bold">예상 연간 발전량</div>
+                <div class="text-base sm:text-lg font-black text-emerald-800"><span id="metric-gen">0</span> <span class="text-xs font-normal">GWh</span></div>
+              </div>
+              <div class="bg-cyan-50 border border-cyan-200 rounded-xl p-2.5">
+                <div class="text-[10px] text-cyan-700 font-bold">온실가스 감축량</div>
+                <div class="text-base sm:text-lg font-black text-cyan-800"><span id="metric-co2">0</span> <span class="text-xs font-normal">tCO₂</span></div>
+              </div>
+              <div class="bg-teal-50 border border-teal-200 rounded-xl p-2.5">
+                <div class="text-[10px] text-teal-700 font-bold">소나무 식재 효과</div>
+                <div class="text-base sm:text-lg font-black text-teal-800"><span id="metric-trees">0</span> <span class="text-xs font-normal">그루</span></div>
+              </div>
+            </div>
+
+            <!-- 최종 건설 버튼 -->
+            <button 
+              id="btn-build-plant" 
+              onclick="buildCurrentPlant()" 
+              class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.98] text-white font-black text-base rounded-xl shadow-lg shadow-emerald-700/20 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span>🏗️ 선택한 권역에 발전소 건설 확정</span>
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- TAB 2: 국내 보급 통계 & 9대 원리 탐색                -->
+    <!-- ---------------------------------------------------- -->
+    <div id="tab-stats" class="hidden space-y-6">
+      
+      <!-- 통계 헤더 -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+              <span>📊 국내 신재생에너지 보급 현황 및 발전 비중</span>
+            </h2>
+            <p class="text-xs text-slate-500">
+              한국에너지공단 신재생에너지센터 최신 공표 통계 기준 (태양광 및 풍력 중심의 보급 확대 추세)
+            </p>
+          </div>
+          <span class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">
+            출처: 한국에너지공단 신재생에너지센터
+          </span>
+        </div>
+
+        <!-- 차트 영역 그리드 -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+          <!-- 도넛 차트 (5 cols) -->
+          <div class="md:col-span-5 h-64 relative flex items-center justify-center">
+            <canvas id="energyShareChart"></canvas>
+          </div>
+          <!-- 텍스트 설명 및 핵심 트렌드 (7 cols) -->
+          <div class="md:col-span-7 space-y-3 text-xs sm:text-sm">
+            <div class="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 leading-relaxed">
+              <strong class="font-bold">☀️ 태양광 발전의 압도적 비중:</strong> 
+              국내 재생에너지 발전량 중 태양광이 약 65% 이상을 차지하며 가장 빠른 속도로 증가하고 있습니다. 대규모 수상 태양광 및 영농형 태양광 기술이 활발히 도입되고 있습니다.
+            </div>
+            <div class="p-3.5 bg-teal-50 rounded-xl border border-teal-200 text-teal-900 leading-relaxed">
+              <strong class="font-bold">💨 대형 해상풍력 프로젝트:</strong> 
+              신안, 울산, 제주 등 해안 및 산간 지역(대관령)을 중심으로 대형 풍력 터빈 보급이 집중 추진되고 있습니다.
+            </div>
+            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-slate-700 leading-relaxed">
+              <strong class="font-bold">💡 기술·가정 교과 핵심 개념:</strong> 
+              신재생 에너지는 <em>'재생에너지(햇빛, 물, 바람 등 무한한 자연)'</em>와 <em>'신에너지(수소, 연료전지 등 새로운 기술)'</em>를 포괄하며, 탄소 배출 없는 지속 가능한 발전을 이끄는 핵심 동력입니다.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9대 재생에너지 핵심 원리 인터랙티브 카드 -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+        <div>
+          <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+            <span>🔬 9대 재생에너지 발전 원리 탐색 마커</span>
+          </h3>
+          <p class="text-xs text-slate-500">카드를 클릭하거나 터치하면 중학교 교과서 수준의 핵심 작동 메커니즘을 상세히 확인할 수 있습니다.</p>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3" id="principles-grid">
+          <!-- 9개 카드가 자바스크립트로 동적 렌더링됨 -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- TAB 3: 탐험 완료 리포트 및 인증서                  -->
+    <!-- ---------------------------------------------------- -->
+    <div id="tab-report" class="hidden space-y-6">
+      
+      <!-- 인증서 프레임 -->
+      <div id="certificate-card" class="bg-white rounded-3xl border-4 border-emerald-600/30 p-6 sm:p-10 shadow-xl max-w-3xl mx-auto relative overflow-hidden">
+        
+        <!-- 테두리 장식 골드/에메랄드 뱃지 -->
+        <div class="text-center space-y-2 mb-6">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 text-3xl shadow-inner mb-1">
+            🏅
+          </div>
+          <span class="text-xs font-bold text-emerald-700 tracking-widest uppercase block">Technology & Home Economics Completion Report</span>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            대한민국 친환경 에너지 탐험 완료 인증서
+          </h2>
+          <p class="text-xs text-slate-500">본 학생은 재생에너지 최적 입지 탐구 및 시뮬레이션을 성실히 완수하였음을 인증합니다.</p>
+        </div>
+
+        <!-- 학생 정보 및 달성 지표 그리드 -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center mb-6">
+          <div>
+            <div class="text-[10px] text-slate-400 font-bold">소속 탐험대원</div>
+            <div class="text-sm sm:text-base font-black text-slate-800" id="rep-student-name">홍길동</div>
+            <div class="text-[11px] text-slate-500 font-mono" id="rep-student-id">20315</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400 font-bold">국내 자립 달성률</div>
+            <div class="text-sm sm:text-base font-black text-emerald-600"><span id="rep-independence">0</span>%</div>
+            <div class="text-[10px] text-slate-500">목표 100%</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400 font-bold">총 발전량</div>
+            <div class="text-sm sm:text-base font-black text-teal-700"><span id="rep-gen">0</span> GWh</div>
+            <div class="text-[10px] text-slate-500">청정에너지</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400 font-bold">탄소 감축 소나무</div>
+            <div class="text-sm sm:text-base font-black text-cyan-700"><span id="rep-trees">0</span> 만그루</div>
+            <div class="text-[10px] text-slate-500">환경 보호 기여</div>
+          </div>
+        </div>
+
+        <!-- 설치 완료된 권역별 발전소 목록표 -->
+        <div class="space-y-2 mb-6">
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">내가 건설한 친환경 발전소 목록</h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+              <thead class="bg-slate-100 text-slate-600 font-bold">
+                <tr>
+                  <th class="p-2.5">권역</th>
+                  <th class="p-2.5">발전 방식</th>
+                  <th class="p-2.5">입지 효율</th>
+                  <th class="p-2.5">연간 발전량</th>
+                  <th class="p-2.5">감축량</th>
+                </tr>
+              </thead>
+              <tbody id="installed-plants-tbody" class="divide-y divide-slate-100">
+                <!-- 자바스크립트로 출력 -->
+                <tr>
+                  <td colspan="5" class="p-4 text-center text-slate-400">아직 건설된 발전소가 없습니다. 지도에서 발전소를 건설해 보세요!</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 하단 교사 확인란 -->
+        <div class="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-500 gap-2">
+          <span>발행일시: <span id="cert-date">2026. 10. 26</span></span>
+          <span class="font-bold text-emerald-800">중학교 기술·가정 교과 평가 포트폴리오용</span>
+        </div>
+
+      </div>
+
+      <!-- 공유 및 출력 버튼 -->
+      <div class="flex justify-center gap-3">
+        <button onclick="window.print()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 active:scale-95 text-white text-xs font-bold rounded-xl shadow transition flex items-center gap-2 cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+          <span>인증서 인쇄 / PDF 저장</span>
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ==================== 3. 팝업 모달: 9대 원리 상세 팝업 ==================== -->
+  <div id="principle-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 text-left relative transform transition-all">
+      <button onclick="closePrincipleModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold transition">
+        ✕
+      </button>
+
+      <div class="flex items-center gap-3 mb-4">
+        <span id="modal-icon" class="text-3xl p-3 bg-emerald-100 rounded-2xl">☀️</span>
+        <div>
+          <span id="modal-category" class="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">재생에너지 원리</span>
+          <h3 id="modal-title" class="text-xl font-extrabold text-slate-800">태양광 발전</h3>
+        </div>
+      </div>
+
+      <!-- 원리 모식도 다이어그램 박스 -->
+      <div id="modal-diagram" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-4 text-xs font-semibold text-slate-700 flex items-center justify-around text-center">
+        <!-- 동적 삽입 -->
+      </div>
+
+      <div class="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed mb-6">
+        <div>
+          <h4 class="font-extrabold text-slate-800 mb-0.5">핵심 메커니즘</h4>
+          <p id="modal-mechanism">빛을 받으면 전자가 이동하는 반도체 광전 효과를 활용하여 전력을 직접 생산합니다.</p>
+        </div>
+        <div>
+          <h4 class="font-extrabold text-slate-800 mb-0.5">장점 및 특징</h4>
+          <p id="modal-features">유지보수가 쉽고 무소음이며 설치가 자유롭지만, 일조량 및 야간 기상 조건의 영향을 받습니다.</p>
+        </div>
+      </div>
+
+      <button onclick="closePrincipleModal()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition">
+        확인하고 닫기
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== 4. 팝업 모달: 100% 자립 완료 축하 모달 ==================== -->
+  <div id="victory-modal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-8 shadow-2xl text-center relative border border-emerald-300 transform animate-bounce-short">
+      <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-4xl mb-4 shadow-inner">
+        🎉
+      </div>
+      <span class="text-xs font-extrabold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+        MISSION COMPLETE
+      </span>
+      <h2 class="text-2xl sm:text-3xl font-black text-slate-800 mt-2 mb-2">
+        친환경 에너지 코리아 완성!
+      </h2>
+      <p class="text-xs sm:text-sm text-slate-600 leading-relaxed mb-6">
+        축하합니다! 전국의 자연환경을 분석하고 최적의 재생에너지 발전소를 구축하여 국가 에너지 자립률 100%를 달성했습니다!
+      </p>
+
+      <div class="grid grid-cols-2 gap-3 bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200 text-center mb-6 text-xs">
+        <div>
+          <span class="text-slate-500 font-bold block">총 발전량</span>
+          <span class="text-lg font-black text-emerald-800"><span id="victory-gen">0</span> GWh</span>
+        </div>
+        <div>
+          <span class="text-slate-500 font-bold block">심은 소나무 환산</span>
+          <span class="text-lg font-black text-teal-800"><span id="victory-trees">0</span> 그루</span>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="goToReportTab()" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-emerald-600/30">
+          종합 리포트 및 인증서 보기
+        </button>
+        <button onclick="closeVictoryModal()" class="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition">
+          시뮬레이터 계속 보기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 맞춤 알림 토스트 박스 -->
+  <div id="toast-box" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div id="toast-content" class="bg-slate-800 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-bold border border-slate-700">
+      <span id="toast-icon">ℹ️</span>
+      <span id="toast-message">알림 내용</span>
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
+    /* ==========================================================
+       1. 오디오 합성 사운드 효과 (Web Audio API)
+       ========================================================== */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playBeep(freq = 440, type = 'sine', duration = 0.15) {
+      try {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        // 오디오 미지원 환경 예외 무시
+      }
+    }
+
+    function soundClick() { playBeep(520, 'sine', 0.08); }
+    function soundSuccess() { 
+      playBeep(440, 'triangle', 0.1); 
+      setTimeout(() => playBeep(660, 'triangle', 0.15), 100);
+      setTimeout(() => playBeep(880, 'triangle', 0.25), 220);
+    }
+    function soundWarn() { playBeep(220, 'sawtooth', 0.25); }
+
+    /* ==========================================================
+       2. 상태 관리 및 데이터 모델
+       ========================================================== */
+    const appState = {
+      studentId: '',
+      studentName: '',
+      currentRegion: 'haenam',
+      currentPlant: 'solar',
+      // 6개 권역별 설치 상태: null | { type, efficiency, generation, co2, trees }
+      installedPlants: {
+        seoul: null,
+        ansan: null,
+        daegwan: null,
+        chungju: null,
+        haenam: null,
+        jeju: null
+      },
+      // 전체 통계
+      totalIndependence: 0,
+      totalGeneration: 0,
+      totalCo2: 0,
+      totalTrees: 0
+    };
+
+    // 권역별 기본 지리 및 자연환경 데이터
+    const REGIONS_DATA = {
+      haenam: {
+        name: '해남',
+        tag: '일조량 풍부 / 남해안 평야',
+        desc: '전라남도 해남은 연중 일조 시간이 길고 온화하여 대규모 솔라시도 태양광 단지가 조성된 대한민국 최고의 태양광 요충지입니다.',
+        defaults: { solar: 7.5, wind: 6.0, tidal: 3.5, hydro: 30 },
+        optimal: 'solar',
+        coords: { x: 110, y: 350 }
+      },
+      daegwan: {
+        name: '대관령·영덕',
+        tag: '백두대간 강풍대 / 동해안',
+        desc: '태백산맥 능선의 대관령과 영덕 해맞이 공원은 연중 편서풍과 해륙풍이 강하게 불어 대형 풍력 터빈이 밀집된 최적의 풍력 발전 단지입니다.',
+        defaults: { solar: 4.8, wind: 14.0, tidal: 1.0, hydro: 40 },
+        optimal: 'wind',
+        coords: { x: 225, y: 130 }
+      },
+      jeju: {
+        name: '제주',
+        tag: '섬 해상풍·탄소 없는 섬',
+        desc: '삼다도(바람)의 명성에 맞게 연중 균일하고 강력한 해상풍이 불어 해상 풍력 발전과 재생에너지 연계 ESS 실증의 선도 지역입니다.',
+        defaults: { solar: 5.2, wind: 13.5, tidal: 2.5, hydro: 20 },
+        optimal: 'wind',
+        coords: { x: 105, y: 425 }
+      },
+      ansan: {
+        name: '안산 시화호',
+        tag: '서해안 최대 조차 / 방조제',
+        desc: '서해안 안산 시화호는 최대 조수간만의 차가 9m 이상에 달해 세계 최대 규모의 시화호 조력발전소가 가동 중인 해양에너지 중심지입니다.',
+        defaults: { solar: 4.5, wind: 7.0, tidal: 8.8, hydro: 35 },
+        optimal: 'tidal',
+        coords: { x: 105, y: 140 }
+      },
+      chungju: {
+        name: '충주(충주댐)',
+        tag: '남한강 상류 내륙 수계 / 낙차',
+        desc: '대한민국 최대 콘크리트 다목적댐인 충주댐이 위치하여 풍부한 저수용량과 낙차를 이용한 전통 수력 및 수상 태양광 발전의 거점입니다.',
+        defaults: { solar: 4.6, wind: 4.0, tidal: 0.0, hydro: 85 },
+        optimal: 'hydro',
+        coords: { x: 175, y: 170 }
+      },
+      seoul: {
+        name: '서울',
+        tag: '수도권 인구 밀집 / 폐기물',
+        desc: '천만 인구가 거주하여 대규모 생활·음식물 폐기물 및 하수가 발생하므로 마포 자원회수시설, 난지도 바이오가스화 등 폐자원 에너지화가 최적입니다.',
+        defaults: { solar: 4.2, wind: 3.5, tidal: 0.0, hydro: 45 },
+        optimal: 'bio',
+        coords: { x: 135, y: 115 }
+      }
+    };
+
+    // 9대 재생에너지 상세 정보
+    const PRINCIPLES_DATA = [
+      {
+        id: 'solar_pv',
+        name: '태양광 발전',
+        icon: '☀️',
+        category: '빛 에너지 변환',
+        diagram: '빛 에너지 ➔ 광전효과 (반도체) ➔ 전기 생산',
+        mechanism: '태양전지(PN접합 반도체)에 빛이 닿으면 전자가 여기되어 전류가 흐르는 광전효과를 이용해 전기를 생산합니다.',
+        features: '발전기 회전 부품이 없어 소음과 마모가 거의 없으며 건물 옥상, 베란다 등 소규모 분산 배치가 용이합니다.'
+      },
+      {
+        id: 'solar_thermal',
+        name: '태양열 발전',
+        icon: '🔥',
+        category: '열 에너지 집열',
+        diagram: '햇빛 집열 ➔ 물·열매체 가열 ➔ 증기 터빈 발전 / 온수',
+        mechanism: '오목거울이나 집열판으로 햇빛을 모아 물이나 기름을 끓이고, 발생하는 고온 증기로 터빈을 돌리거나 난방열로 씁니다.',
+        features: '열에너지를 저장(축열)했다가 해가 진 야간에도 일정 시간 발전을 유지할 수 있는 장점이 있습니다.'
+      },
+      {
+        id: 'wind',
+        name: '풍력 발전',
+        icon: '💨',
+        category: '운동에너지 변환',
+        diagram: '바람 운동에너지 ➔ 블레이드 회전 ➔ 발전기 전기 생산',
+        mechanism: '바람이 날개(블레이드)를 지나갈 때 발생하는 양력으로 회전축을 돌리고, 증속기를 거쳐 발전기에서 전기를 생산합니다.',
+        features: '산간 능선이나 해상에 대형화하여 설치할 때 발전 효율이 높으며, 시동 풍속과 강풍 시 컷아웃 제어가 필요합니다.'
+      },
+      {
+        id: 'tidal',
+        name: '해양(조력·파력) 발전',
+        icon: '🌊',
+        category: '해양 에너지',
+        diagram: '조석간만 수위차 ➔ 수문 개방 수차 회전 ➔ 전기',
+        mechanism: '달과 태양의 인력으로 생기는 밀물과 썰물의 높이 차이를 방조제에 가두어 낙차를 만들고 수차를 돌립니다.',
+        features: '기상과 무관하게 조석 주기에 따라 발전량을 정확히 예측할 수 있으나 연안 생태계 영향 고려가 필수적입니다.'
+      },
+      {
+        id: 'hydro',
+        name: '수력 발전',
+        icon: '💧',
+        category: '위치에너지 변환',
+        diagram: '댐 저수지 위치에너지 ➔ 관로 낙하 수차 회전 ➔ 전기',
+        mechanism: '높은 곳에 가둔 물을 낮은 곳으로 떨어뜨릴 때의 압력과 유량으로 수차(러너)를 회전시켜 전기를 발생시킵니다.',
+        features: '전력 수요가 급증할 때 밸브를 열어 수 분 내에 가동할 수 있어 전력망 주파수 조절에 매우 중요합니다.'
+      },
+      {
+        id: 'geothermal',
+        name: '지열 발전·히트펌프',
+        icon: '🌋',
+        category: '지구 내부 열에너지',
+        diagram: '지중 심부 고온수·증기 ➔ 지열 히트펌프 ➔ 난방/발전',
+        mechanism: '지하 마그마 열이나 지중의 일정한 항온(15℃)을 히트펌프와 냉매로 흡수하여 냉난방열 및 증기 전력으로 변환합니다.',
+        features: '24시간 365일 날씨나 계절에 구애받지 않고 연중 일정한 에너지를 공급받을 수 있는 기저 부하 자원입니다.'
+      },
+      {
+        id: 'hydrothermal',
+        name: '수열 에너지',
+        icon: '🧊',
+        category: '물 온도차 에너지',
+        diagram: '하천수·해수 표층 온도차 ➔ 히트펌프 열교환 ➔ 냉난방',
+        mechanism: '여름철에는 대기보다 시원하고 겨울철에는 대기보다 따뜻한 댐 물, 하천수의 열을 히트펌프로 열교환합니다.',
+        features: '대형 건물(예: 롯데월드타워)이나 데이터센터의 냉난방 에너지를 30~50% 획기적으로 절감할 수 있습니다.'
+      },
+      {
+        id: 'biomass',
+        name: '바이오 에너지',
+        icon: '🌽',
+        category: '생물 유기체 자원화',
+        diagram: '농작물·목재 펠릿·가축분뇨 ➔ 바이오가스/디젤 ➔ 전력·연료',
+        mechanism: '유기성 생물체(식물, 가축 분뇨, 우드칩)를 혐기 발효시켜 메탄가스를 얻거나 바이오 에탄올·디젤을 정제합니다.',
+        features: '에너지를 액체나 기체 연료 형태로 저장·운송할 수 있어 기존 주유소 및 가스 배관망에 그대로 활용 가능합니다.'
+      },
+      {
+        id: 'waste',
+        name: '폐기물 에너지',
+        icon: '♻️',
+        category: '폐자원 순환',
+        diagram: '생활·산업 가연성 폐기물 ➔ 고형연료(SRF) 소각 ➔ 스팀·전력',
+        mechanism: '가연성 쓰레기나 폐타이어, 플라스틱을 고형연료(SRF)로 가공 소각하여 고온 스팀과 터빈 전기를 회수합니다.',
+        features: '쓰레기 매립량을 줄여 환경 오염을 막고 전기를 동시에 얻지만 소각 배기가스 정화 설비가 필수적입니다.'
+      }
+    ];
+
+    /* ==========================================================
+       3. 로그인 및 사용자 유효성 검사 (명세 1, 2, 3)
+       ========================================================== */
+    function handleLogin(e) {
+      e.preventDefault();
+      const idInput = document.getElementById('student-id').value.trim();
+      const nameInput = document.getElementById('student-name').value.trim();
+      const errorBox = document.getElementById('login-error');
+      const errorText = document.getElementById('login-error-text');
+
+      // 정규식 검사: 학번 5자리 숫자, 이름 한글 2~10자
+      const isIdValid = /^\d{5}$/.test(idInput);
+      const isNameValid = /^[가-힣]{2,10}$/.test(nameInput);
+
+      if (!isIdValid || !isNameValid) {
+        soundWarn();
+        errorBox.classList.remove('hidden');
+        errorText.innerText = '학번(숫자 5자리)과 이름(한글)을 정확히 입력해 주세요.';
+        return;
+      }
+
+      // 로그인 성공
+      soundSuccess();
+      appState.studentId = idInput;
+      appState.studentName = nameInput;
+
+      // 상단 헤더 업데이트
+      document.getElementById('user-badge').innerHTML = `
+        <span class="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+          ${appState.studentId} ${appState.studentName}
+        </span> 탐험대원
+      `;
+
+      // 리포트 탭 초기 반영
+      document.getElementById('rep-student-name').innerText = appState.studentName;
+      document.getElementById('rep-student-id').innerText = appState.studentId;
+
+      // 로그인 화면 숨기기
+      const loginModal = document.getElementById('login-screen');
+      loginModal.classList.add('transition-opacity', 'duration-500', 'opacity-0');
+      setTimeout(() => {
+        loginModal.style.display = 'none';
+      }, 500);
+
+      // 기본 지역 초기 선택
+      selectRegion('haenam');
+      renderPrinciplesGrid();
+      initChart();
+      showToast('🗺️ 재생에너지 탐험대에 오신 것을 환영합니다!');
+    }
+
+    /* ==========================================================
+       4. 탭 전환 처리
+       ========================================================== */
+    function switchTab(tabId) {
+      soundClick();
+      const tabs = ['sim', 'stats', 'report'];
+      tabs.forEach(t => {
+        const tabEl = document.getElementById(`tab-${t}`);
+        const btnEl = document.getElementById(`tab-btn-${t}`);
+        if (t === tabId) {
+          tabEl.classList.remove('hidden');
+          btnEl.className = 'tab-btn active px-3.5 py-1.5 rounded-lg bg-emerald-500 text-white transition shadow-sm font-bold';
+        } else {
+          tabEl.classList.add('hidden');
+          btnEl.className = 'tab-btn px-3.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition font-bold';
+        }
+      });
+
+      if (tabId === 'stats' && energyChart) {
+        energyChart.resize();
+      }
+      if (tabId === 'report') {
+        updateReportTable();
+      }
+    }
+
+    /* ==========================================================
+       5. 지역 및 발전소 선택 로직 (명세 6, 7, 8, 9)
+       ========================================================== */
+    function selectRegion(regionKey) {
+      soundClick();
+      appState.currentRegion = regionKey;
+      const data = REGIONS_DATA[regionKey];
+
+      // 하단 빠른 선택 버튼 강조 동기화
+      document.querySelectorAll('.region-btn').forEach(btn => {
+        btn.classList.remove('border-emerald-500', 'bg-emerald-50', 'text-emerald-800');
+        btn.classList.add('border-slate-200', 'bg-slate-50', 'text-slate-700');
+      });
+      const activeBtn = document.getElementById(`btn-reg-${regionKey}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('border-slate-200', 'bg-slate-50');
+        activeBtn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-800');
+      }
+
+      // 지도 SVG 마커 선택 상태 갱신 (크기 변경 없이 is-active 클래스만 토글)
+      ['seoul', 'ansan', 'daegwan', 'chungju', 'haenam', 'jeju'].forEach(k => {
+        const groupEl = document.getElementById(`map-group-${k}`);
+        if (groupEl) {
+          if (k === regionKey) {
+            groupEl.classList.add('is-active');
+          } else {
+            groupEl.classList.remove('is-active');
+          }
+        }
+      });
+
+      // 지역 정보 업데이트
+      document.getElementById('selected-region-tag').innerText = `현재 선택: ${data.name}`;
+      document.getElementById('region-feature-tag').innerText = data.tag;
+      document.getElementById('region-desc').innerText = data.desc;
+
+      // 슬라이더 기본값 동기화
+      document.getElementById('input-solar').value = data.defaults.solar;
+      document.getElementById('input-wind').value = data.defaults.wind;
+      document.getElementById('input-tidal').value = data.defaults.tidal;
+      document.getElementById('input-hydro').value = data.defaults.hydro;
+
+      updateSimulation();
+    }
+
+    function selectPlantType(plantKey) {
+      soundClick();
+      appState.currentPlant = plantKey;
+
+      // 버튼 스타일 업데이트
+      document.querySelectorAll('.plant-type-btn').forEach(btn => {
+        btn.classList.remove('ring-2', 'ring-emerald-500', 'bg-emerald-50/50');
+      });
+      const activeBtn = document.getElementById(`plant-btn-${plantKey}`);
+      if (activeBtn) {
+        activeBtn.classList.add('ring-2', 'ring-emerald-500', 'bg-emerald-50/50');
+      }
+
+      // 애니메이션 뷰 전환
+      document.querySelectorAll('.anim-view').forEach(view => view.classList.add('hidden'));
+      const activeView = document.getElementById(`anim-view-${plantKey}`);
+      if (activeView) activeView.classList.remove('hidden');
+
+      updateSimulation();
+    }
+
+    /* ==========================================================
+       6. 입지 적합도 및 경계값 실시간 시뮬레이션 계산
+       ========================================================== */
+    function checkSuitability(regionKey, plantKey) {
+      // 1. 내륙 불가 판정: 충주댐, 서울에 조력 발전 시도 (명세 8)
+      if ((regionKey === 'chungju' || regionKey === 'seoul') && plantKey === 'tidal') {
+        return {
+          status: 'impossible',
+          badge: '입지 불가 (0%)',
+          badgeClass: 'bg-red-100 text-red-700',
+          title: '지리적 설치 불가!',
+          detail: '내륙에는 바다가 없어 조력 발전소를 지을 수 없어요! 해안 또는 방조제 지역을 찾아보세요.',
+          efficiency: 0
+        };
+      }
+
+      // 2. 최적 입지 판정 (명세 7)
+      const optimalMap = {
+        haenam: 'solar',
+        daegwan: 'wind',
+        jeju: 'wind',
+        ansan: 'tidal',
+        chungju: 'hydro',
+        seoul: 'bio'
+      };
+
+      if (optimalMap[regionKey] === plantKey) {
+        return {
+          status: 'optimal',
+          badge: '최적 입지 (100%)',
+          badgeClass: 'bg-emerald-100 text-emerald-800',
+          title: '자연환경과 완벽히 부합하는 최적 입지!',
+          detail: '해당 권역의 풍부한 자연 자원을 최대한 활용하여 100% 최고 발전 효율을 발휘합니다.',
+          efficiency: 1.0
+        };
+      }
+
+      // 3. 보통 입지 판정 (명세 9)
+      const hintText = {
+        haenam: '일조량이 뛰어난 해남에는 [태양광]이 가장 유리합니다.',
+        daegwan: '백두대간 강풍이 부는 대관령·영덕에는 [풍력]이 가장 유리합니다.',
+        jeju: '해상풍이 강한 제주에는 [풍력]이 가장 유리합니다.',
+        ansan: '서해안 최대 조차를 가진 안산 시화호에는 [조력]이 가장 유리합니다.',
+        chungju: '충주댐의 풍부한 유량과 낙차를 활용하는 [수력]이 가장 유리합니다.',
+        seoul: '도심 유기성 폐자원이 집중되는 서울에는 [바이오·폐기물]이 가장 유리합니다.'
+      };
+
+      return {
+        status: 'moderate',
+        badge: '보통 입지 (50%)',
+        badgeClass: 'bg-amber-100 text-amber-800',
+        title: '설치는 가능하나 주력 자원이 아님',
+        detail: `발전 효율이 50%로 절반만 발휘됩니다. 💡 힌트: ${hintText[regionKey]}`,
+        efficiency: 0.5
+      };
+    }
+
+    function updateSimulation() {
+      const solarVal = parseFloat(document.getElementById('input-solar').value);
+      const windVal = parseFloat(document.getElementById('input-wind').value);
+      const tidalVal = parseFloat(document.getElementById('input-tidal').value);
+      const hydroVal = parseInt(document.getElementById('input-hydro').value);
+
+      // 수치 텍스트 업데이트
+      document.getElementById('val-solar').innerText = solarVal.toFixed(1);
+      document.getElementById('val-wind').innerText = windVal.toFixed(1);
+      document.getElementById('val-tidal').innerText = tidalVal.toFixed(1);
+      document.getElementById('val-hydro').innerText = hydroVal;
+
+      const suitability = checkSuitability(appState.currentRegion, appState.currentPlant);
+
+      // 적합도 UI 업데이트
+      const suitBox = document.getElementById('suitability-box');
+      const suitBadge = document.getElementById('suitability-badge');
+      const suitTitle = document.getElementById('suitability-title');
+      const suitDetail = document.getElementById('suitability-detail');
+
+      suitBadge.className = `font-extrabold text-xs px-2 py-0.5 rounded ${suitsuitBadgeClass(suitability.status)}`;
+      suitBadge.innerText = suitability.badge;
+      suitTitle.innerText = suitability.title;
+      suitDetail.innerText = suitability.detail;
+
+      // 경계값(Cut-off) 조건 판별
+      let isCutoff = false;
+      let cutoffMsg = '';
+      const cutoffOverlay = document.getElementById('cutoff-overlay');
+      const cutoffDesc = document.getElementById('cutoff-desc');
+
+      // 1) 태양광 임계값: 일사 시간 <= 0.5h (명세 11)
+      if (appState.currentPlant === 'solar') {
+        if (solarVal <= 0.5) {
+          isCutoff = true;
+          cutoffMsg = '일사량 부족으로 광전 효과가 일어나지 않습니다 (발전량 0)';
+        }
+      }
+      // 2) 풍력 미풍 하한: 풍속 < 3m/s (명세 12)
+      else if (appState.currentPlant === 'wind') {
+        if (windVal < 3.0) {
+          isCutoff = true;
+          cutoffMsg = '최소 시동 풍속(3m/s) 미만이어서 발전기가 돌지 않습니다 (발전량 0)';
+        }
+        // 3) 풍력 강풍 상한: 풍속 >= 25m/s (명세 13)
+        else if (windVal >= 25.0) {
+          isCutoff = true;
+          cutoffMsg = '강풍 안전 정지(Cut-out) 작동! 터빈 파손 방지를 위해 가동을 멈춥니다 (발전량 0)';
+        }
+      }
+      // 4) 조력 조차 임계값: 조차 < 4m (명세 14)
+      else if (appState.currentPlant === 'tidal') {
+        if (tidalVal < 4.0) {
+          isCutoff = true;
+          cutoffMsg = '조수간만의 차가 작아 경제적인 조력 발전이 어렵습니다 (발전량 0)';
+        }
+      }
+
+      // 애니메이션 회전 속도 및 상태 제어
+      const turbineBlades = document.getElementById('wind-blades');
+      const turbineStatus = document.getElementById('turbine-status-text');
+
+      if (appState.currentPlant === 'wind') {
+        if (isCutoff) {
+          turbineBlades.style.animationPlayState = 'paused';
+          turbineStatus.innerText = '⚠️ 터빈 정지 상태 (발전 불가)';
+        } else {
+          turbineBlades.style.animationPlayState = 'running';
+          // 풍속에 반비례하여 회전 주기 단축 (빠르게 회전)
+          const duration = Math.max(0.3, 4 - (windVal / 30) * 3.5);
+          turbineBlades.style.setProperty('--spin-duration', `${duration.toFixed(2)}s`);
+          turbineStatus.innerText = `풍속 ${windVal.toFixed(1)}m/s | 정상 터빈 고속 회전 중`;
+        }
+      }
+
+      // 컷오프 오버레이 표시 여부
+      if (isCutoff) {
+        cutoffOverlay.classList.remove('hidden');
+        cutoffDesc.innerText = cutoffMsg;
+      } else {
+        cutoffOverlay.classList.add('hidden');
+      }
+
+      // 발전량 공식 계산 (지리 적합도 * 자원량 지수 * 컷오프)
+      let baseCapacity = 0;
+      if (!isCutoff && suitability.efficiency > 0) {
+        if (appState.currentPlant === 'solar') {
+          baseCapacity = (solarVal / 10) * 120;
+        } else if (appState.currentPlant === 'wind') {
+          baseCapacity = (windVal / 24) * 140;
+        } else if (appState.currentPlant === 'tidal') {
+          baseCapacity = (tidalVal / 10) * 160;
+        } else if (appState.currentPlant === 'hydro') {
+          baseCapacity = (hydroVal / 100) * 130;
+        } else if (appState.currentPlant === 'bio') {
+          baseCapacity = 110; // 도심 폐기물 안정적 공급
+        }
+      }
+
+      const expectedGen = Math.round(baseCapacity * suitability.efficiency);
+      // 탄소 감축량 = GWh * 약 430톤 (화석연료 대체 계수)
+      const co2 = Math.round(expectedGen * 430);
+      // 소나무 1그루 연간 약 6.6kg 흡수 -> 약 0.0066t
+      const trees = Math.round(co2 / 0.0066);
+
+      // 카드 지표 출력
+      document.getElementById('metric-gen').innerText = expectedGen;
+      document.getElementById('metric-co2').innerText = co2.toLocaleString();
+      document.getElementById('metric-trees').innerText = trees.toLocaleString();
+
+      // 건설 버튼 활성화/비활성화 (지리적 설치 불가 시 건설 차단)
+      const buildBtn = document.getElementById('btn-build-plant');
+      if (suitability.status === 'impossible') {
+        buildBtn.disabled = true;
+        buildBtn.classList.add('opacity-40', 'cursor-not-allowed');
+      } else {
+        buildBtn.disabled = false;
+        buildBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+      }
+    }
+
+    function suitsuitBadgeClass(status) {
+      if (status === 'optimal') return 'bg-emerald-100 text-emerald-800';
+      if (status === 'moderate') return 'bg-amber-100 text-amber-800';
+      return 'bg-red-100 text-red-700';
+    }
+
+    /* ==========================================================
+       7. 발전소 건설 및 100% 자립 판별 (명세 15, 16)
+       ========================================================== */
+    function buildCurrentPlant() {
+      const regKey = appState.currentRegion;
+      const plantKey = appState.currentPlant;
+      const currentInstalled = appState.installedPlants[regKey];
+
+      // 동일 발전소 중복 설치 방지 (명세 15)
+      if (currentInstalled && currentInstalled.type === plantKey) {
+        soundWarn();
+        showToast('⚠️ 이미 같은 발전소가 설치된 권역입니다.');
+        return;
+      }
+
+      const suitability = checkSuitability(regKey, plantKey);
+      if (suitability.status === 'impossible') {
+        soundWarn();
+        showToast('❌ 내륙에는 조력 발전소를 설치할 수 없습니다.');
+        return;
+      }
+
+      const genVal = parseInt(document.getElementById('metric-gen').innerText);
+      const co2Val = parseInt(document.getElementById('metric-co2').innerText.replace(/,/g, ''));
+      const treesVal = parseInt(document.getElementById('metric-trees').innerText.replace(/,/g, ''));
+
+      // 상태 저장
+      appState.installedPlants[regKey] = {
+        type: plantKey,
+        regionName: REGIONS_DATA[regKey].name,
+        plantName: getPlantKoreanName(plantKey),
+        efficiency: suitability.badge,
+        efficiencyRate: suitability.efficiency,
+        generation: genVal,
+        co2: co2Val,
+        trees: treesVal
+      };
+
+      soundSuccess();
+      updateNationalGrid();
+
+      // 지도 라벨 업데이트
+      const badgeEl = document.getElementById(`map-badge-${regKey}`);
+      if (badgeEl) {
+        badgeEl.textContent = `${getPlantKoreanName(plantKey)}(완료)`;
+        badgeEl.setAttribute('fill', '#047857');
+      }
+
+      showToast(`🎉 [${REGIONS_DATA[regKey].name}]에 ${getPlantKoreanName(plantKey)} 발전소가 성공적으로 건설되었습니다!`);
+    }
+
+    function getPlantKoreanName(type) {
+      const names = {
+        solar: '태양광',
+        wind: '풍력',
+        tidal: '조력',
+        hydro: '수력',
+        bio: '바이오·폐기물'
+      };
+      return names[type] || type;
+    }
+
+    function updateNationalGrid() {
+      let count = 0;
+      let totalGen = 0;
+      let totalCo2 = 0;
+      let totalTrees = 0;
+
+      Object.values(appState.installedPlants).forEach(p => {
+        if (p) {
+          count++;
+          totalGen += p.generation;
+          totalCo2 += p.co2;
+          totalTrees += p.trees;
+        }
+      });
+
+      // 6개 권역 각각 16.6%씩, 모두 설치 시 100%
+      const rate = Math.min(100, Math.round((count / 6) * 100));
+      appState.totalIndependence = rate;
+      appState.totalGeneration = totalGen;
+      appState.totalCo2 = totalCo2;
+      appState.totalTrees = totalTrees;
+
+      // 헤더 및 UI 갱신
+      document.getElementById('independence-rate').innerText = rate;
+      document.getElementById('independence-bar').style.width = `${rate}%`;
+      document.getElementById('total-generation').innerText = totalGen.toLocaleString();
+      document.getElementById('installed-count').innerText = count;
+
+      // 리포트 탭 갱신
+      document.getElementById('rep-independence').innerText = rate;
+      document.getElementById('rep-gen').innerText = totalGen.toLocaleString();
+      document.getElementById('rep-trees').innerText = (totalTrees / 10000).toFixed(1);
+
+      // 100% 도달 완료 축하 (명세 16)
+      if (rate >= 100) {
+        triggerVictory();
+      }
+    }
+
+    function triggerVictory() {
+      // 폭죽 이펙트
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+      }
+      playBeep(523, 'triangle', 0.2);
+      setTimeout(() => playBeep(659, 'triangle', 0.2), 200);
+      setTimeout(() => playBeep(784, 'triangle', 0.4), 400);
+
+      document.getElementById('victory-gen').innerText = appState.totalGeneration.toLocaleString();
+      document.getElementById('victory-trees').innerText = appState.totalTrees.toLocaleString();
+      document.getElementById('victory-modal').classList.remove('hidden');
+    }
+
+    function closeVictoryModal() {
+      document.getElementById('victory-modal').classList.add('hidden');
+    }
+
+    function goToReportTab() {
+      closeVictoryModal();
+      switchTab('report');
+    }
+
+    /* ==========================================================
+       8. 전체 초기화 (명세 17)
+       ========================================================== */
+    function resetAllData() {
+      soundWarn();
+      // 확인 모달 대신 즉시 초기화 및 토스트 안내
+      appState.installedPlants = {
+        seoul: null,
+        ansan: null,
+        daegwan: null,
+        chungju: null,
+        haenam: null,
+        jeju: null
+      };
+
+      // 지도 텍스트 리셋
+      ['seoul', 'ansan', 'daegwan', 'chungju', 'haenam', 'jeju'].forEach(k => {
+        const badgeEl = document.getElementById(`map-badge-${k}`);
+        if (badgeEl) {
+          badgeEl.textContent = '미설치';
+          badgeEl.setAttribute('fill', '#64748b');
+        }
+      });
+
+      updateNationalGrid();
+      selectRegion('haenam');
+      selectPlantType('solar');
+      updateReportTable();
+      showToast('🔄 모든 발전소 데이터와 자립률이 초기 상태로 리셋되었습니다.');
+    }
+
+    /* ==========================================================
+       9. 리포트 테이블 렌더링
+       ========================================================== */
+    function updateReportTable() {
+      const tbody = document.getElementById('installed-plants-tbody');
+      tbody.innerHTML = '';
+
+      const installedList = Object.entries(appState.installedPlants)
+        .filter(([_, val]) => val !== null)
+        .map(([key, val]) => val);
+
+      if (installedList.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="p-4 text-center text-slate-400">
+              아직 건설된 발전소가 없습니다. 전국 발전소 시뮬레이터에서 최적의 재생에너지를 직접 건설해 보세요!
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      installedList.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition';
+        tr.innerHTML = `
+          <td class="p-2.5 font-bold text-slate-800">${item.regionName}</td>
+          <td class="p-2.5 font-semibold text-emerald-700">${item.plantName}</td>
+          <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[11px] font-bold ${item.efficiencyRate === 1.0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${item.efficiency}</span></td>
+          <td class="p-2.5 font-mono font-bold">${item.generation.toLocaleString()} GWh</td>
+          <td class="p-2.5 text-slate-500">${item.co2.toLocaleString()} tCO₂</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* ==========================================================
+       10. 9대 재생에너지 마커 렌더링 & 팝업 (명세 4, 5)
+       ========================================================== */
+    function renderPrinciplesGrid() {
+      const container = document.getElementById('principles-grid');
+      container.innerHTML = '';
+
+      PRINCIPLES_DATA.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'p-3.5 bg-slate-50 hover:bg-emerald-50/50 border border-slate-200 hover:border-emerald-400 rounded-xl cursor-pointer transition transform hover:-translate-y-0.5 flex flex-col justify-between';
+        card.onclick = () => openPrincipleModal(item);
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-2xl">${item.icon}</span>
+              <span class="text-[10px] bg-slate-200/80 text-slate-600 px-1.5 py-0.5 rounded font-bold">자세히</span>
+            </div>
+            <h4 class="font-bold text-slate-800 text-xs sm:text-sm mb-1">${item.name}</h4>
+            <p class="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">${item.mechanism}</p>
+          </div>
+          <div class="mt-2 pt-2 border-t border-slate-200/60 text-[10px] text-emerald-700 font-semibold">
+            ${item.category}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function openPrincipleModal(item) {
+      soundClick();
+      document.getElementById('modal-icon').innerText = item.icon;
+      document.getElementById('modal-category').innerText = item.category;
+      document.getElementById('modal-title').innerText = item.name;
+      document.getElementById('modal-mechanism').innerText = item.mechanism;
+      document.getElementById('modal-features').innerText = item.features;
+
+      // 다이어그램 단순화 그래픽
+      document.getElementById('modal-diagram').innerHTML = `
+        <div class="flex items-center justify-center gap-2 text-xs font-bold text-emerald-800">
+          <span class="p-2 bg-white rounded-lg border border-slate-200 shadow-sm">${item.diagram.split('➔')[0] || ''}</span>
+          <span>➔</span>
+          <span class="p-2 bg-emerald-100 rounded-lg border border-emerald-300 shadow-sm">${item.diagram.split('➔')[1] || ''}</span>
+          <span>➔</span>
+          <span class="p-2 bg-cyan-100 rounded-lg border border-cyan-300 shadow-sm">${item.diagram.split('➔')[2] || ''}</span>
+        </div>
+      `;
+
+      document.getElementById('principle-modal').classList.remove('hidden');
+    }
+
+    function closePrincipleModal() {
+      document.getElementById('principle-modal').classList.add('hidden');
+    }
+
+    /* ==========================================================
+       11. 한국에너지공단 기준 통계 차트 (Chart.js)
+       ========================================================== */
+    let energyChart = null;
+
+    function initChart() {
+      const ctx = document.getElementById('energyShareChart');
+      if (!ctx) return;
+
+      // 한국에너지공단 신재생에너지 보급 비율 공표 통계 (최신 기준)
+      const chartData = {
+        labels: ['태양광 (66.5%)', '바이오 (15.2%)', '풍력 (6.8%)', '수력 (5.1%)', '폐기물 (4.2%)', '해양·지열 등 (2.2%)'],
+        datasets: [{
+          data: [66.5, 15.2, 6.8, 5.1, 4.2, 2.2],
+          backgroundColor: [
+            '#f59e0b', // 태양광
+            '#10b981', // 바이오
+            '#06b6d4', // 풍력
+            '#3b82f6', // 수력
+            '#64748b', // 폐기물
+            '#8b5cf6'  // 해양 및 기타
+          ],
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      };
+
+      energyChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: chartData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 12,
+                font: { size: 10, family: 'Pretendard' },
+                padding: 10
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return ` ${context.label}: ${context.parsed}% 비중`;
+                }
+              }
+            }
+          },
+          cutout: '62%'
+        }
+      });
+    }
+
+    /* ==========================================================
+       12. 토스트 메시지 유틸리티
+       ========================================================== */
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toast-box');
+      const text = document.getElementById('toast-message');
+      text.innerText = msg;
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    // 오늘 날짜 자동 표기
+    window.addEventListener('DOMContentLoaded', () => {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}. ${String(today.getMonth() + 1).padStart(2, '0')}. ${String(today.getDate()).padStart(2, '0')}`;
+      const certEl = document.getElementById('cert-date');
+      if (certEl) certEl.innerText = dateStr;
+    });
+  </script>
+</body>
+</html>
